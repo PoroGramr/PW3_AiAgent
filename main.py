@@ -35,7 +35,7 @@ async def shutdown_event():
     print("스케줄러 종료")
 
 # 1. 환경 설정
-DB_PATH = "./attendance.db"
+DB_PATH = "/app/attendance.db"
 # 구글 AI 스튜디오에서 발급받은 API 키를 넣으세요
 os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
 
