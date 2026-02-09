@@ -51,6 +51,7 @@ jobs:
             docker run -d \
               --name attendance-api-container \
               --network attendance-deploy_attendance-net \
+              -p 8084:8084 \
               --label traefik.enable=true \
               --label 'traefik.http.routers.attendance.rule=Host(`pw3ai.porogramr.site`)' \
               --label traefik.http.routers.attendance.entrypoints=websecure \
