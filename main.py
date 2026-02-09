@@ -18,6 +18,11 @@ scheduler = BackgroundScheduler()
 
 @app.on_event("startup")
 async def startup_event():
+    # 서버 시작 시 DB 동기화
+    print("서버 시작: DB 동기화를 시작합니다...")
+    refresh_local_db()
+    print("DB 동기화 완료!")
+    
     # 매주 일요일 밤 12시(00:00)에 실행
     scheduler.add_job(
         refresh_local_db,
