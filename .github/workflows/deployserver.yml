@@ -50,16 +50,16 @@ jobs:
             echo "== (5) 새 컨테이너 실행 =="
             docker run -d \
               --name attendance-api-container \
-              --network ${{ secrets.DOCKER_NETWORK }} \
+              --network attendance-deploy_attendance-net \
               --label traefik.enable=true \
-              --label 'traefik.http.routers.attendance.rule=Host(`${{ secrets.DOMAIN }}`)' \
+              --label 'traefik.http.routers.attendance.rule=Host(`pw3ai.porogramr.site`)' \
               --label traefik.http.routers.attendance.entrypoints=websecure \
               --label traefik.http.routers.attendance.tls=true \
               --label traefik.http.routers.attendance.tls.certresolver=letsencrypt \
               --label traefik.http.services.attendance.loadbalancer.server.port=8084 \
-              -e GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }} \
-              -e MYSQL_URL=${{ secrets.MYSQL_URL }} \
-              -v ${{ secrets.PROJECT_PATH }}/attendance.db:/app/attendance.db \
+              -e "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" \
+              -e "MYSQL_URL=${{ secrets.MYSQL_URL }}" \
+              -v "${{ secrets.PROJECT_PATH }}/attendance.db:/app/attendance.db" \
               attendance-api:latest || { echo "❌ 컨테이너 실행 실패"; exit 1; }
             echo "== (6) 컨테이너 로그 확인 (마지막 100줄) =="
             docker logs attendance-api-container --tail 100 || echo "⚠️ 로그 확인 실패 (무시)"
