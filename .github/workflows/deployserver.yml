@@ -38,7 +38,7 @@ jobs:
             git fetch origin main || { echo "❌ git fetch 실패"; exit 1; }
             git reset --hard origin/main || { echo "❌ git reset 실패"; exit 1; }
             echo "== (3) Docker 이미지 빌드 =="
-            docker build -t attendance-api:latest . || { echo "❌ Docker 빌드 실패"; exit 1; }
+            docker build -t pw3ai:latest . || { echo "❌ Docker 빌드 실패"; exit 1; }
             echo "== (4) 기존 컨테이너 중지 및 삭제 =="
             if [ "$(docker ps -a -q -f name=pw3ai)" ]; then
               echo "컨테이너가 이미 존재합니다. 중지 및 삭제를 시도합니다."

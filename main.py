@@ -279,10 +279,15 @@ async def ask_question(query: str):
 
 MYSQL_URL = os.getenv("MYSQL_URL")
 # 2. 저장할 SQLite 경로
-SQLITE_PATH = "./attendance.db"
+SQLITE_PATH = "/app/attendance.db"
 
 def refresh_local_db():
     try:
+        # 디렉토리 확인 및 생성
+        db_dir = os.path.dirname(SQLITE_PATH)
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+        
         # MySQL 엔진 생성
         engine = create_engine(MYSQL_URL)
         
