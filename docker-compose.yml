@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: attendance-api
+    ports:
+      - "8000:8000"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - MYSQL_URL=${MYSQL_URL}
+    volumes:
+      # DB 파일을 호스트에 저장하여 컨테이너 재시작 시에도 유지
+      - ./attendance.db:/app/attendance.db
+    restart: unless-stopped
