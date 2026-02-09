@@ -40,30 +40,30 @@ jobs:
             echo "== (3) Docker 이미지 빌드 =="
             docker build -t attendance-api:latest . || { echo "❌ Docker 빌드 실패"; exit 1; }
             echo "== (4) 기존 컨테이너 중지 및 삭제 =="
-            if [ "$(docker ps -a -q -f name=attendance-api-container)" ]; then
+            if [ "$(docker ps -a -q -f name=pw3ai)" ]; then
               echo "컨테이너가 이미 존재합니다. 중지 및 삭제를 시도합니다."
-              docker stop attendance-api-container || echo "⚠️ 컨테이너 중지 실패 (무시)"
-              docker rm attendance-api-container || echo "⚠️ 컨테이너 삭제 실패 (무시)"
+              docker stop pw3ai || echo "⚠️ 컨테이너 중지 실패 (무시)"
+              docker rm pw3ai || echo "⚠️ 컨테이너 삭제 실패 (무시)"
             else
               echo "기존 컨테이너가 없습니다."
             fi
             echo "== (5) 새 컨테이너 실행 =="
             docker run -d \
-              --name attendance-api-container \
+              --name pw3ai \
               --network attendance-deploy_attendance-net \
               -p 8084:8084 \
               --label traefik.enable=true \
-              --label 'traefik.http.routers.attendance.rule=Host(`pw3ai.porogramr.site`)' \
-              --label traefik.http.routers.attendance.entrypoints=websecure \
-              --label traefik.http.routers.attendance.tls=true \
-              --label traefik.http.routers.attendance.tls.certresolver=letsencrypt \
-              --label traefik.http.services.attendance.loadbalancer.server.port=8084 \
+              --label 'traefik.http.routers.pw3ai.rule=Host(`pw3ai.porogramr.site`)' \
+              --label traefik.http.routers.pw3ai.entrypoints=websecure \
+              --label traefik.http.routers.pw3ai.tls=true \
+              --label traefik.http.routers.pw3ai.tls.certresolver=letsencrypt \
+              --label traefik.http.services.pw3ai.loadbalancer.server.port=8084 \
               -e "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" \
               -e "MYSQL_URL=${{ secrets.MYSQL_URL }}" \
               -v "${{ secrets.PROJECT_PATH }}/attendance.db:/app/attendance.db" \
               attendance-api:latest || { echo "❌ 컨테이너 실행 실패"; exit 1; }
             echo "== (6) 컨테이너 로그 확인 (마지막 100줄) =="
-            docker logs attendance-api-container --tail 100 || echo "⚠️ 로그 확인 실패 (무시)"
+            docker logs pw3ai --tail 100 || echo "⚠️ 로그 확인 실패 (무시)"
             echo "✅ [DEPLOY 완료]"
           EOF
         shell: bash
