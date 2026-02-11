@@ -2,6 +2,7 @@ import os
 import sqlite3
 import pandas as pd
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from langchain_community.utilities import SQLDatabase
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.agent_toolkits import create_sql_agent
@@ -12,6 +13,20 @@ from apscheduler.triggers.cron import CronTrigger
 load_dotenv() 
 
 app = FastAPI()
+
+# CORS 설정 - 프론트엔드에서 API 접근 허용
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000", 
+        "http://127.0.0.1:3000",
+        "https://www.pw3hub.xyz",
+        "https://pw3ai.porogramr.site"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],  # 모든 HTTP 메서드 허용 (GET, POST, PUT, DELETE 등)
+    allow_headers=["*"],  # 모든 헤더 허용
+)
 
 # 스케줄러 초기화
 scheduler = BackgroundScheduler()
