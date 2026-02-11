@@ -51,13 +51,13 @@ jobs:
             docker run -d \
               --name pw3ai \
               --network attendance-deploy_attendance-net \
-              -p 8084:8084 \
+              -p 8084:8000 \
               --label traefik.enable=true \
               --label 'traefik.http.routers.pw3ai.rule=Host(`pw3ai.porogramr.site`)' \
               --label traefik.http.routers.pw3ai.entrypoints=websecure \
               --label traefik.http.routers.pw3ai.tls=true \
               --label traefik.http.routers.pw3ai.tls.certresolver=letsencrypt \
-              --label traefik.http.services.pw3ai.loadbalancer.server.port=8084 \
+              --label traefik.http.services.pw3ai.loadbalancer.server.port=8000 \
               -e "GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}" \
               -e "MYSQL_URL=${{ secrets.MYSQL_URL }}" \
               pw3ai:latest || { echo "❌ 컨테이너 실행 실패"; exit 1; }
