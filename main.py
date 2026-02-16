@@ -136,13 +136,87 @@ def get_agent():
 
         ---
 
+        ### 4. `teacher` 테이블
+        교사의 기본 정보를 저장하는 테이블이야.
+
+        **주요 컬럼:**
+        - `id` (BIGINT, PRIMARY KEY): 교사 고유 ID
+        - `name` (VARCHAR): 교사 이름
+        - `birth` (DATE): 생년월일
+        - `sex` (ENUM: 'MAN', 'WOMAN'): 성별
+        - `phone` (VARCHAR): 교사 연락처
+        - `teacher_type` (ENUM: 'PASTOR', 'TEACHER', 'HELPER'): 교사 유형
+          - `PASTOR`: 목사
+          - `TEACHER`: 교사
+          - `HELPER`: 도우미
+        - `memo` (VARCHAR): 메모
+        - `deleted_at` (TIMESTAMP): 삭제 시각 (Soft Delete)
+        - `created_at`, `updated_at`: 생성/수정 시각
+
+        **관계:**
+        - `teacher_class` 테이블과 1:N 관계 (한 교사는 여러 학년도에 반 배정 가능)
+        - `attendance_teacher` 테이블과 1:N 관계 (한 교사는 여러 출석 기록을 가짐)
+
+        ---
+
+        ### 5. `teacher_class` 테이블
+        교사와 반(ClassRoom)의 매핑 정보를 저장하는 중간 테이블이야. 학년도별로 교사가 어느 반을 담당하는지 관리해.
+
+        **주요 컬럼:**
+        - `id` (BIGINT, PRIMARY KEY): 교사-반 매핑 고유 ID
+        - `teacher_id` (BIGINT, FOREIGN KEY, NOT NULL): `teacher.id` 참조
+        - `class_room_id` (BIGINT, FOREIGN KEY, NOT NULL): `class_room.id` 참조
+        - `school_year` (INTEGER, NOT NULL): 담당 학년도 (예: 2025)
+        - `created_at`, `updated_at`: 생성/수정 시각
+
+        **관계:**
+        - `teacher` 테이블과 N:1 관계 (여러 teacher_class가 하나의 teacher를 참조)
+        - `class_room` 테이블과 N:1 관계 (여러 teacher_class가 하나의 class_room을 참조)
+
+        **중요:** 교사 정보를 조회할 때는 반드시 `teacher_class`를 통해 `teacher`와 JOIN 해야 해!
+
+        ---
+
+        ### 6. `attendance_teacher` 테이블
+        교사의 출석 기록을 저장하는 테이블이야. 특정 날짜에 특정 교사의 출석 상태를 기록해.
+
+        **주요 컬럼:**
+        - `id` (BIGINT, PRIMARY KEY): 출석 기록 고유 ID
+        - `teacher_id` (BIGINT, FOREIGN KEY, NOT NULL): `teacher.id` 참조
+        - `date` (DATE, NOT NULL): 출석한 날짜
+        - `status` (ENUM, NOT NULL): 출석 상태
+          - `ATTEND`: 출석
+          - `LATE`: 지각
+          - `ABSENT`: 결석
+          - `OTHER`: 기타
+        - `created_at`, `updated_at`: 생성/수정 시각
+
+        **제약 조건:**
+        - `teacher_id`와 `date`의 조합은 UNIQUE (같은 날짜에 같은 교사의 출석 기록은 1개만 존재)
+
+        **관계:**
+        - `teacher` 테이블과 N:1 관계 (여러 출석 기록이 하나의 teacher를 참조)
+
+        **중요:** 학생 출석(`attendance`)과 달리 교사 출석(`attendance_teacher`)은 `teacher_id`를 직접 참조해!
+
+        ---
+
         ## 테이블 간 관계도
 
+        ### 학생 출석 시스템
         ```
         student (1) ─────< (N) student_class (1) ─────< (N) attendance
-        id                    student_id                  student_class_id
-                                class_room_id               date
-                                school_year                 status
+           id                    student_id                  student_class_id
+                                 class_room_id               date
+                                 school_year                 status
+        ```
+
+        ### 교사 출석 시스템
+        ```
+        teacher (1) ─────< (N) teacher_class        teacher (1) ─────< (N) attendance_teacher
+           id                    teacher_id            id                    teacher_id
+                                 class_room_id                               date
+                                 school_year                                 status
         ```
 
         **조인 예시:**
@@ -153,6 +227,12 @@ def get_agent():
         JOIN student_class sc ON a.student_class_id = sc.id
         JOIN student s ON sc.student_id = s.id
         WHERE s.name = '김철수';
+
+        -- 교사 이름으로 출석 기록 조회
+        SELECT t.name, at.date, at.status
+        FROM attendance_teacher at
+        JOIN teacher t ON at.teacher_id = t.id
+        WHERE t.name = '박선생';
         ```
 
         ---
@@ -245,13 +325,52 @@ def get_agent():
         GROUP BY s.id, s.name;
         ```
 
+        ### 4. 특정 기간 출석한 교사 목록
+        ```sql
+        SELECT DISTINCT t.name, t.teacher_type
+        FROM attendance_teacher at
+        JOIN teacher t ON at.teacher_id = t.id
+        WHERE at.date BETWEEN '2025-01-01' AND '2025-01-31'
+        AND at.status IN ('ATTEND', 'LATE')
+        AND t.deleted_at IS NULL;
+        ```
+
+        ### 5. 특정 기간 결석한 교사 목록 (암묵적 결석 포함)
+        ```sql
+        SELECT t.name
+        FROM teacher t
+        WHERE t.deleted_at IS NULL
+        AND NOT EXISTS (
+            SELECT 1 FROM attendance_teacher at
+            WHERE at.teacher_id = t.id
+            AND at.date BETWEEN '2025-01-01' AND '2025-01-31'
+            AND at.status IN ('ATTEND', 'LATE')
+        );
+        ```
+
+        ### 6. 교사별 출석률 계산
+        ```sql
+        SELECT 
+        t.name,
+        t.teacher_type,
+        COUNT(CASE WHEN at.status IN ('ATTEND', 'LATE') THEN 1 END) AS attend_count,
+        COUNT(at.id) AS total_records,
+        ROUND(COUNT(CASE WHEN at.status IN ('ATTEND', 'LATE') THEN 1 END) * 100.0 / COUNT(at.id), 2) AS attendance_rate
+        FROM teacher t
+        LEFT JOIN attendance_teacher at ON t.id = at.teacher_id
+        WHERE t.deleted_at IS NULL
+        GROUP BY t.id, t.name, t.teacher_type;
+        ```
+
         ---
 
         ## 응답 형식
         - SQL 쿼리를 생성할 때는 반드시 위 규칙을 따라야 해
-        - 결석 조회 시 암묵적 결석을 절대 빠뜨리지 마
+        - 결석 조회 시 암묵적 결석을 절대 빠뜨리지 마 (학생과 교사 모두 해당)
         - 학생 정보 조회 시 `student_class`를 반드시 경유해
-        - 삭제된 학생(`deleted_at IS NOT NULL`)은 항상 제외해
+        - 교사 정보 조회 시 반 정보가 필요하면 `teacher_class`를 경유해
+        - 삭제된 학생/교사(`deleted_at IS NOT NULL`)는 항상 제외해
+        - **중요:** 교사 출석은 `attendance_teacher` 테이블을 사용하고 `teacher_id`를 직접 참조해 (student_class처럼 중간 테이블 거치지 않음)
         - 데이터를 출력할 때 'extras', 'signature', 'index'와 같은 메타데이터나 기술적인 정보는 절대 포함하지 마.
         - 오직 사용자가 묻는 핵심 정보(예: 이름, 날짜, 출석 상태)만 자연스러운 문장으로 대답해줘.
         - 1월 안빠지고 출석한 학생 리스트를 요청했을때 올해가 아닌 작년 1월을 조회하는 경우가 발생해, 이럴경우 너가 판단하에 올해 1월인지 작년 1월인지 신중히 판단해 쿼리를 작성하도록 해.
@@ -313,7 +432,7 @@ def refresh_local_db():
         engine = create_engine(MYSQL_URL)
         
         # 필요한 테이블들을 리스트업
-        tables = ['student', 'attendance', 'student_class']
+        tables = ['student', 'attendance', 'student_class','teacher','teacher_class','attendance_teacher']
         
         # SQLite 연결
         sqlite_conn = sqlite3.connect(SQLITE_PATH)
