@@ -38,16 +38,16 @@ async def startup_event():
     refresh_local_db()
     print("DB 동기화 완료!")
     
-    # 매주 일요일 밤 12시(00:00)에 실행
+    # 일요일 오전 8시~12시 사이에만 5분마다 동기화
     scheduler.add_job(
         refresh_local_db,
-        trigger=CronTrigger(day_of_week='sun', hour=0, minute=0),
-        id='refresh_db_weekly',
-        name='Refresh local DB every Sunday at midnight',
+        trigger=CronTrigger(day_of_week='sun', hour='8-11', minute='*/5'),  # 일요일 08:00~11:55
+        id='refresh_db_sunday_morning',
+        name='Refresh local DB every 5 minutes on Sunday morning (8AM-12PM)',
         replace_existing=True
     )
     scheduler.start()
-    print("스케줄러 시작: 매주 일요일 밤 12시에 DB 동기화가 실행됩니다.")
+    print("스케줄러 시작: 매주 일요일 오전 8시~12시에 5분마다 DB 동기화가 실행됩니다.")
 
 @app.on_event("shutdown")
 async def shutdown_event():
