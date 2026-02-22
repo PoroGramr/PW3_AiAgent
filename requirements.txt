@@ -8,3 +8,4 @@ langchain==1.2.9
 langchain-community==0.4.1
 langchain-google-genai==4.2.0
 APScheduler==3.11.2
+pytz==2024.1

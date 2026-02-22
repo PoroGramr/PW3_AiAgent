@@ -10,6 +10,7 @@ from sqlalchemy import create_engine
 from dotenv import load_dotenv
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+import pytz
 load_dotenv() 
 
 app = FastAPI()
@@ -29,7 +30,8 @@ app.add_middleware(
 )
 
 # 스케줄러 초기화
-scheduler = BackgroundScheduler()
+KST = pytz.timezone('Asia/Seoul')
+scheduler = BackgroundScheduler(timezone=KST)
 
 @app.on_event("startup")
 async def startup_event():
@@ -41,7 +43,7 @@ async def startup_event():
     # 일요일 오전 8시~12시 사이에만 5분마다 동기화
     scheduler.add_job(
         refresh_local_db,
-        trigger=CronTrigger(day_of_week='sun', hour='8-11', minute='*/5'),  # 일요일 08:00~11:55
+        trigger=CronTrigger(day_of_week='sun', hour='8-11', minute='*/5', timezone=KST),  # 일요일 08:00~11:55 KST
         id='refresh_db_sunday_morning',
         name='Refresh local DB every 5 minutes on Sunday morning (8AM-12PM)',
         replace_existing=True
